@@ -64,7 +64,7 @@ public class Program
 		_ = new BuildReferencesHook();
 
 		// Initialize the engine command line
-		ManagedEngine.CommandLineSwitches["project"] = options.ProjectPath;
+		ManagedEngine.CommandLineSwitches["project"] = Path.GetFullPath( options.ProjectPath );
 
 		// Launch the editor
 		if ( ManagedEngine.StartEditor() is not { } appSystem )

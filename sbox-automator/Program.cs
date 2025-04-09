@@ -36,6 +36,8 @@ public class Program
 
 	private static void Start( Options options )
 	{
+		options.ProjectPath = Path.GetFullPath( options.ProjectPath );
+
 		ScriptPath = options.ScriptPath;
 
 		if ( !File.Exists( ScriptPath ) )
@@ -64,7 +66,7 @@ public class Program
 		_ = new BuildReferencesHook();
 
 		// Initialize the engine command line
-		ManagedEngine.CommandLineSwitches["project"] = Path.GetFullPath( options.ProjectPath );
+		ManagedEngine.CommandLineSwitches["project"] = options.ProjectPath;
 
 		// Launch the editor
 		if ( ManagedEngine.StartEditor() is not { } appSystem )

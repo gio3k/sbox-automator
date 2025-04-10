@@ -147,7 +147,15 @@ public class Program
 						}
 					}
 
-					type.Method( "Run" ).InvokeFor( instance );
+					try
+					{
+						type.Method( "Run" ).InvokeFor( instance );
+					}
+					catch ( Exception e )
+					{
+						Log.Error( $"Failed to run plugin '{type.Name}': {e.Message}" );
+						Environment.Exit( 1 );
+					}
 				}
 			} );
 	}

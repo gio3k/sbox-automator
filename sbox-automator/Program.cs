@@ -61,11 +61,12 @@ public class Program
 
 		// Initialize the managed parts of the engine
 		ManagedEngine.Initialize();
-		
+
 		// Patch some parts of the game
 		_ = new NativeInteropPatchHook();
 		_ = new EditorLibraryBuildArchiveHook();
 		_ = new BuildReferencesHook();
+		_ = new EditorUtilityCompileHook();
 
 		// Initialize the engine command line
 		ManagedEngine.CommandLineSwitches["project"] = options.ProjectPath;

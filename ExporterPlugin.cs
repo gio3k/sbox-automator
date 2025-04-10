@@ -56,7 +56,7 @@ public class ExporterPlugin : IAutomatorPlugin
 			var p = standaloneWizard.Parent;
 			while ( p.IsValid() )
 			{
-				Log.Info("NextPageAsync... hit last page, closing")
+				Log.Info( "NextPageAsync... hit last page, closing" );
 
 				if (p is BaseWindow)
 				{
@@ -93,7 +93,7 @@ public class ExporterPlugin : IAutomatorPlugin
 
 		await SwitchCurrentPage( standaloneWizard );
 
-		await Task.Delay(100);
+		await Task.Delay( 100 );
 
 		standaloneWizard.ToReflectionObject()?
 			.Invoke( "Update" );

@@ -16,7 +16,7 @@ public static class ManagedEngine
 		public readonly string ManagedDllPath = Path.Combine( gamePath, "bin\\managed" );
 		public readonly string NativeDllPath = Path.Combine( gamePath, "bin\\win64" );
 
-		public string GetFullPathFromAutomatorDir( string path ) => Path.GetFullPath( path, AutomatorPath);
+		public string GetFullPathFromAutomatorDir( string path ) => Path.GetFullPath( path, AutomatorPath );
 	}
 
 	public static CFileStruct Files { get; private set; }

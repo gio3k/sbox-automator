@@ -37,12 +37,15 @@ public class ExporterPlugin : IAutomatorPlugin
 			return false;
 
 		Log.Info( "NextPageAsync... Waiting until we can proceed..." );
-		for ( int i = 0; i < 7; i++ ) // wait at least 500*7 ms
+		while ( true )
 		{
 			var canProceed = currentPage.ToReflectionObject()?
 				.Invoke<bool>( "CanProceed" );
 
-			if ( canProceed == true )
+			var isLoading = standaloneWizard.ToReflectionObject()?
+				.Field<bool>( "loading" );
+
+			if ( canProceed == true && isLoading != true )
 				break;
 
 			await Task.Delay( 500 );
@@ -58,7 +61,7 @@ public class ExporterPlugin : IAutomatorPlugin
 			{
 				Log.Info( "NextPageAsync... hit last page, closing" );
 
-				if (p is BaseWindow)
+				if ( p is BaseWindow )
 				{
 					p.Close();
 					return true;
@@ -79,7 +82,8 @@ public class ExporterPlugin : IAutomatorPlugin
 
 			foreach ( var step in steps )
 			{
-				step.ToReflectionObject()?.Prop( "Visible", false );
+				if ( step != next )
+					step.ToReflectionObject()?.Prop( "Visible", false );
 			}
 
 			await standaloneWizard.ToReflectionObject()?
@@ -98,7 +102,7 @@ public class ExporterPlugin : IAutomatorPlugin
 		standaloneWizard.ToReflectionObject()?
 			.Invoke( "Update" );
 
-   		await Task.Delay( 100 );
+		await Task.Delay( 100 );
 
 		return true;
 	}
@@ -135,6 +139,13 @@ public class ExporterPlugin : IAutomatorPlugin
 
 		config!.TargetDir = OutputDirectory;
 		config.AppId = AppId;
+
+		await Task.Delay( 100 );
+
+		Log.Info( "Updating project..." );
+		await EditorUtility.Projects.Updated( Project.Current );
+
+		await Task.Delay( 1000 );
 
 		// Go through the wizard
 		await NextPageAsync( standaloneWizard );

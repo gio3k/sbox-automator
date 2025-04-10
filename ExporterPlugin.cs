@@ -147,7 +147,7 @@ public class ExporterPlugin : IAutomatorPlugin
 		var config = standaloneWizard.ToReflectionObject()?
 			.Field<ExportConfig>( "Config" );
 
-		config!.TargetDir = ManagedEngine.Files.GetFullPathFromAutomatorDir( OutputDirectory )z;
+		config!.TargetDir = ManagedEngine.Files.GetFullPathFromAutomatorDir( OutputDirectory );
 		config.AppId = AppId;
 
 		await Task.Delay( 100 );

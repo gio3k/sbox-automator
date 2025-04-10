@@ -38,7 +38,7 @@ public class Program
 	{
 		options.ProjectPath = Path.GetFullPath( options.ProjectPath );
 
-		ScriptPath = options.ScriptPath;
+		ScriptPath = Path.GetFullPath( options.ScriptPath );
 
 		if ( !File.Exists( ScriptPath ) )
 		{

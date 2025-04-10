@@ -26,6 +26,9 @@ public static class ReflectionUtils
 
 	public static Type Type( this Assembly assembly, string typeName ) => assembly.GetType( typeName );
 
+	public static Type Type( this Type type, string nestedTypeName ) => type.GetNestedType( nestedTypeName,
+		BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic );
+
 	public static MethodInfo Method( this Type type, string methodName, Type[] overloads = null )
 	{
 		if ( type == null )
@@ -77,7 +80,7 @@ public static class ReflectionUtils
 			BindingFlags.FlattenHierarchy;
 		return type.GetProperty( propertyName, bindingFlags );
 	}
-	
+
 	public static PropertyInfo PropRecursive( this Type type, string propertyName )
 	{
 		var current = type;
@@ -101,7 +104,7 @@ public static class ReflectionUtils
 			BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 		return type.GetField( fieldName, bindingFlags );
 	}
-	
+
 	public static FieldInfo FieldRecursive( this Type type, string fieldName )
 	{
 		var current = type;

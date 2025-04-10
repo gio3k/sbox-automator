@@ -1,6 +1,8 @@
 ﻿global using static SandboxAutomator.Core.Logger;
 using System.ComponentModel;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
 using CommandLine;
 using SandboxAutomator.Core;
 using SandboxAutomator.Core.Launcher;
@@ -37,7 +39,6 @@ public class Program
 	private static void Start( Options options )
 	{
 		options.ProjectPath = Path.GetFullPath( options.ProjectPath );
-
 		ScriptPath = Path.GetFullPath( options.ScriptPath );
 
 		if ( !File.Exists( ScriptPath ) )
@@ -60,9 +61,10 @@ public class Program
 
 		// Initialize the managed parts of the engine
 		ManagedEngine.Initialize();
-
+		
+		// Patch some parts of the game
+		_ = new NativeInteropPatchHook();
 		_ = new EditorLibraryBuildArchiveHook();
-
 		_ = new BuildReferencesHook();
 
 		// Initialize the engine command line

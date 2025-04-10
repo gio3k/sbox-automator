@@ -6,6 +6,7 @@
         <RootNamespace>sbox_automator</RootNamespace>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,6 +15,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\SandboxAutomator.Core\SandboxAutomator.Core.csproj" />
+      <ProjectReference Include="..\SandboxAutomator.Native\SandboxAutomator.Native.csproj" />
     </ItemGroup>
 
 </Project>

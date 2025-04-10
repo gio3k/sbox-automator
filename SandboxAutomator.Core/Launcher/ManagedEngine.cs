@@ -7,13 +7,16 @@ public static class ManagedEngine
 {
 	public static Dictionary<string, string> CommandLineSwitches { get; private set; }
 
-	public struct CFileStruct( string gamePath )
+	public struct CFileStruct( string automatorPath, string gamePath )
 	{
 		public readonly string GamePath = gamePath;
 
+		public readonly string AutomatorPath = automatorPath;
 		public readonly string BaseEditorLibraryPath = Path.Combine( gamePath, "addons\\tools" );
 		public readonly string ManagedDllPath = Path.Combine( gamePath, "bin\\managed" );
 		public readonly string NativeDllPath = Path.Combine( gamePath, "bin\\win64" );
+
+		public string GetFullPathFromAutomatorDir( string path ) => Path.GetFullPath( path, AutomatorPath);
 	}
 
 	public static CFileStruct Files { get; private set; }
@@ -116,7 +119,7 @@ public static class ManagedEngine
 	{
 		Log.Info( $"Set engine path to '{path}'" );
 
-		Files = new CFileStruct( path );
+		Files = new CFileStruct( Environment.CurrentDirectory, path );
 		Assemblies = new CAsmStruct( Files );
 		Types = new CTypeStruct( Assemblies );
 	}

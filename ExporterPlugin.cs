@@ -1,8 +1,10 @@
 using System.Collections;
+using System.IO;
 using System.Reflection;
 using System.Threading;
 using Editor.Wizards;
 using SandboxAutomator.Core;
+using SandboxAutomator.Core.Launcher;
 using SandboxAutomator.Core.Runtime;
 
 public class ExporterPlugin : IAutomatorPlugin
@@ -145,7 +147,7 @@ public class ExporterPlugin : IAutomatorPlugin
 		var config = standaloneWizard.ToReflectionObject()?
 			.Field<ExportConfig>( "Config" );
 
-		config!.TargetDir = OutputDirectory;
+		config!.TargetDir = ManagedEngine.Files.GetFullPathFromAutomatorDir( OutputDirectory )z;
 		config.AppId = AppId;
 
 		await Task.Delay( 100 );

@@ -95,6 +95,7 @@ public class ExporterPlugin : IAutomatorPlugin
 				.Field( "_current", next );
 		}
 
+		standaloneWizard.ToReflectionObject()?
 		await SwitchCurrentPage( standaloneWizard );
 
 		await Task.Delay( 100 );

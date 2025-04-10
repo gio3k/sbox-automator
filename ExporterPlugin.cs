@@ -96,6 +96,8 @@ public class ExporterPlugin : IAutomatorPlugin
 		}
 
 		standaloneWizard.ToReflectionObject()?
+			.Invoke( "Update" );
+
 		await SwitchCurrentPage( standaloneWizard );
 
 		await Task.Delay( 100 );
@@ -123,6 +125,11 @@ public class ExporterPlugin : IAutomatorPlugin
 			current.Field( "TokenSource", new CancellationTokenSource() );
 
 			await current.Invoke<Task>( "OpenAsync" );
+
+			current.Prop( "Visible", true );
+			current.Invoke( "Update" );
+
+			await Task.Delay( 500 );
 
 			wizard.Field( "loading", false );
 		}

@@ -37,7 +37,7 @@ public class ExporterPlugin : IAutomatorPlugin
 			return false;
 
 		Log.Info( "NextPageAsync... Waiting until we can proceed..." );
-		while ( true )
+		for ( int i = 0; i < 7; i++ ) // wait at least 500*7 ms
 		{
 			var canProceed = currentPage.ToReflectionObject()?
 				.Invoke<bool>( "CanProceed" );
@@ -56,7 +56,9 @@ public class ExporterPlugin : IAutomatorPlugin
 			var p = standaloneWizard.Parent;
 			while ( p.IsValid() )
 			{
-				if ( p is BaseWindow )
+				Log.Info("NextPageAsync... hit last page, closing")
+
+				if (p is BaseWindow)
 				{
 					p.Close();
 					return true;
@@ -91,8 +93,12 @@ public class ExporterPlugin : IAutomatorPlugin
 
 		await SwitchCurrentPage( standaloneWizard );
 
+		await Task.Delay(100);
+
 		standaloneWizard.ToReflectionObject()?
 			.Invoke( "Update" );
+
+   		await Task.Delay( 100 );
 
 		return true;
 	}

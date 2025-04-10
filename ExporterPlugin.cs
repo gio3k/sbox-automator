@@ -6,6 +6,7 @@ using Editor.Wizards;
 using SandboxAutomator.Core;
 using SandboxAutomator.Core.Launcher;
 using SandboxAutomator.Core.Runtime;
+using FileSystem = Editor.FileSystem;
 
 public class ExporterPlugin : IAutomatorPlugin
 {
@@ -14,135 +15,18 @@ public class ExporterPlugin : IAutomatorPlugin
 	[Argument( Required = true )] public string OutputDirectory { get; set; }
 	[Argument( Required = true )] public uint AppId { get; set; }
 
+	private object _wizard;
+
 	public void Run()
 	{
+		EditorEvent.Register( this );
+
 		typeof(StandaloneWizard).StartRecordingInstances();
 
 		Wizard.OpenWindow<StandaloneWizard>( Project.Current, 500, 500 );
 
 		var standaloneWizard = (StandaloneWizard)typeof(StandaloneWizard).GetLastInstance();
-		DoStandaloneWizard( standaloneWizard );
-	}
 
-	private async Task<bool> NextPageAsync( StandaloneWizard standaloneWizard )
-	{
-		await Task.Delay( 100 );
-
-		var steps = standaloneWizard.ToReflectionObject()?.Field<IList>( "Steps" );
-
-		var currentPage = standaloneWizard.ToReflectionObject()?
-			.Prop( "Current" );
-
-		Log.Info( $"NextPageAsync... (current page = {currentPage})" );
-
-		if ( currentPage == null )
-			return false;
-
-		Log.Info( "NextPageAsync... Waiting until we can proceed..." );
-		while ( true )
-		{
-			var canProceed = currentPage.ToReflectionObject()?
-				.Invoke<bool>( "CanProceed" );
-
-			var isLoading = standaloneWizard.ToReflectionObject()?
-				.Field<bool>( "loading" );
-
-			if ( canProceed == true && isLoading != true )
-				break;
-
-			await Task.Delay( 500 );
-		}
-
-		Log.Info( "NextPageAsync... Updating project..." );
-		await EditorUtility.Projects.Updated( Project.Current );
-
-		if ( steps != null && steps.Count != 0 && steps[^1] == currentPage )
-		{
-			var p = standaloneWizard.Parent;
-			while ( p.IsValid() )
-			{
-				Log.Info( "NextPageAsync... hit last page, closing" );
-
-				if ( p is BaseWindow )
-				{
-					p.Close();
-					return true;
-				}
-
-				p = p.Parent;
-			}
-		}
-
-		Log.Info( "NextPageAsync... Moving to next step..." );
-		{
-			var i = steps.IndexOf( currentPage );
-			var next = steps[i + 1];
-
-			if ( await currentPage.ToReflectionObject()?
-				    .Invoke<Task<bool>>( "FinishAsync" )! == false )
-				return false;
-
-			foreach ( var step in steps )
-			{
-				if ( step != next )
-					step.ToReflectionObject()?.Prop( "Visible", false );
-			}
-
-			await standaloneWizard.ToReflectionObject()?
-				.Field( "_current" )?
-				.ToReflectionObject()?
-				.Field<CancellationTokenSource>( "TokenSource" )?.CancelAsync()!;
-
-			standaloneWizard.ToReflectionObject()?
-				.Field( "_current", next );
-		}
-
-		standaloneWizard.ToReflectionObject()?
-			.Invoke( "Update" );
-
-		await SwitchCurrentPage( standaloneWizard );
-
-		await Task.Delay( 100 );
-
-		standaloneWizard.ToReflectionObject()?
-			.Invoke( "Update" );
-
-		await Task.Delay( 100 );
-
-		return true;
-	}
-
-	private async Task SwitchCurrentPage( StandaloneWizard standaloneWizard )
-	{
-		try
-		{
-			if ( standaloneWizard.ToReflectionObject() is not { } wizard )
-				return;
-
-			wizard.Field( "loading", true );
-
-			if ( wizard.Field( "_current" ).ToReflectionObject() is not { } current )
-				return;
-
-			current.Field( "TokenSource", new CancellationTokenSource() );
-
-			await current.Invoke<Task>( "OpenAsync" );
-
-			current.Prop( "Visible", true );
-			current.Invoke( "Update" );
-
-			await Task.Delay( 500 );
-
-			wizard.Field( "loading", false );
-		}
-		catch ( Exception e )
-		{
-			Log.Error( e );
-		}
-	}
-
-	internal async void DoStandaloneWizard( StandaloneWizard standaloneWizard )
-	{
 		// Prepare export config	
 		var config = standaloneWizard.ToReflectionObject()?
 			.Field<ExportConfig>( "Config" );
@@ -150,32 +34,93 @@ public class ExporterPlugin : IAutomatorPlugin
 		config!.TargetDir = ManagedEngine.Files.GetFullPathFromAutomatorDir( OutputDirectory );
 		config.AppId = AppId;
 
-		await Task.Delay( 100 );
+		DoStandaloneWizard( standaloneWizard );
+	}
 
-		Log.Info( "Updating project..." );
-		await EditorUtility.Projects.Updated( Project.Current );
+	private RealTimeSince _timeout;
 
-		await Task.Delay( 1000 );
-
-		// Go through the wizard
-		await NextPageAsync( standaloneWizard );
-
-		if ( standaloneWizard.ToReflectionObject()?
-			    .Field<IList>( "Steps" )[1].ToReflectionObject() is not { } currentPage )
-			throw new Exception( "currentPage is null" );
-
-		if ( !currentPage.Field<bool>( "CompileSuccessful" ) )
+	[EditorEvent.Frame]
+	private void Tick()
+	{
+		if ( _wizard is not Widget widget || !widget.IsValid() )
 		{
-			Log.Info( "Compile failed!" );
-			Environment.Exit( 1 );
+			_wizard = null;
+			HandleCompletion();
+			return;
 		}
 
-		await NextPageAsync( standaloneWizard );
+		//if ( _timeout < 1 )
+		//	return;
 
-		await NextPageAsync( standaloneWizard );
+		_timeout = 0;
 
-		await NextPageAsync( standaloneWizard );
+		if ( _wizard.ToReflectionObject() is not { } wizard )
+		{
+			//Log.Info( "1" );
+			return;
+		}
 
+		var loading = wizard.Field<bool>( "loading" );
+		if ( loading )
+		{
+			//Log.Info( "2" );
+			return;
+		}
+
+		if ( wizard.Field<object>( "_current" ).ToReflectionObject() is not { } current )
+		{
+			//Log.Info( "3" );
+			return;
+		}
+
+		if ( !current.Invoke<bool>( "CanProceed" ) )
+		{
+			//Log.Info( "4" );
+			return;
+		}
+
+		Log.Info( $"!!! proceeding (current = {current.Type})" );
+
+		SetConfig( (StandaloneWizard)wizard.Value );
+
+		wizard.Invoke( "NextPage" );
+	}
+
+	private static bool AllPages_IsAutoStep( object self ) => false;
+
+	internal void SetConfig( StandaloneWizard standaloneWizard )
+	{
+		// Prepare export config	
+		var config = standaloneWizard.ToReflectionObject()?
+			.Field<ExportConfig>( "Config" );
+		config!.TargetDir =
+			ManagedEngine.Files.GetFullPathFromAutomatorDir( OutputDirectory );
+		config.AppId = AppId;
+
+		foreach ( var step in standaloneWizard.ToReflectionObject()?.Field<IList>( "Steps" ) )
+		{
+			step.ToReflectionObject()?.Prop( "PublishConfig", config );
+		}
+	}
+
+	internal void DoStandaloneWizard( StandaloneWizard standaloneWizard )
+	{
+		SetConfig( standaloneWizard );
+
+		// Patch IsAutoStep
+		foreach ( var type in typeof(BaseWizardPage).Assembly.GetTypes()
+			         .Where( v => v.IsSubclassOf( typeof(BaseWizardPage) ) && v != typeof(BaseWizardPage) ) )
+		{
+			Detouring.Hook( type.Prop( "IsAutoStep" ).GetMethod!,
+				typeof(ExporterPlugin).Method( "AllPages_IsAutoStep" ) );
+		}
+
+		_timeout = 0;
+		_wizard = standaloneWizard;
+	}
+
+	internal void HandleCompletion()
+	{
 		Environment.Exit( 0 );
 	}
 }

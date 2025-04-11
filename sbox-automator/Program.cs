@@ -36,9 +36,44 @@ public class Program
 
 	public static string ScriptPath { get; private set; } = null!;
 
+	private static string? FindProject( string path )
+	{
+		path = Path.GetFullPath( path );
+
+		// Try to find the project first
+		if ( !Path.Exists( path ) )
+		{
+			Log.Error( $"Project '{path}' not found" );
+			return null;
+		}
+
+		var projectPathAttrs = File.GetAttributes( path );
+		if ( !projectPathAttrs.HasFlag( FileAttributes.Directory ) )
+			return path; // Treat as file
+
+		// Treat as directory
+
+		Log.Info( "Project path was a directory, looking for a single .sbproj file" );
+		var sbprojPath = Directory.EnumerateFiles( path, "*.sbproj" ).FirstOrDefault();
+		if ( string.IsNullOrWhiteSpace( sbprojPath ) )
+		{
+			Log.Error( $"No .sbproj file found in {path}" );
+			return null;
+		}
+
+		return sbprojPath;
+	}
+
 	private static void Start( Options options )
 	{
-		options.ProjectPath = Path.GetFullPath( options.ProjectPath );
+		if ( FindProject( options.ProjectPath ) is not { } projectPath )
+		{
+			Log.Error( $"Project '{options.ProjectPath}' not found" );
+			Environment.Exit( 1 );
+			return;
+		}
+
+		options.ProjectPath = projectPath;
 		ScriptPath = Path.GetFullPath( options.ScriptPath );
 
 		if ( !File.Exists( ScriptPath ) )
